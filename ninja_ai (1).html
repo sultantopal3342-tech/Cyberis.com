@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ninja AI</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;800&family=DM+Sans:wght@300;400;500&display=swap');
+:root{--bg:#0a0a0f;--surface:#13131a;--border:#1e1e2e;--accent:#7c6aff;--accent2:#ff6a9e;--accent3:#43e0b4;--text:#e8e8f0;--muted:#6b6b80}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+body::before{content:'';position:fixed;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(ellipse at 20% 20%,rgba(124,106,255,.08) 0%,transparent 50%),radial-gradient(ellipse at 80% 80%,rgba(255,106,158,.06) 0%,transparent 50%);pointer-events:none;z-index:0}
+header{position:relative;z-index:10;display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--border);background:rgba(10,10,15,.95);backdrop-filter:blur(12px);flex-shrink:0}
+.logo{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:15px;color:white;flex-shrink:0}
+.header-info h1{font-family:'Syne',sans-serif;font-weight:800;font-size:15px}
+.status{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
+.status-dot{width:6px;height:6px;background:#4ade80;border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.creator-badge{margin-left:auto;font-size:10px;color:var(--muted);text-align:right;line-height:1.5}
+.creator-badge span{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-weight:600}
+nav{display:flex;gap:4px;padding:10px 20px;border-bottom:1px solid var(--border);background:rgba(10,10,15,.9);flex-shrink:0;z-index:9;position:relative;overflow-x:auto}
+nav::-webkit-scrollbar{display:none}
+.tab{padding:7px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid transparent;color:var(--muted);white-space:nowrap;transition:all .2s;background:transparent;font-family:'DM Sans',sans-serif}
+.tab:hover{color:var(--text);border-color:var(--border)}
+.tab.active{background:linear-gradient(135deg,rgba(124,106,255,.2),rgba(255,106,158,.1));border-color:rgba(124,106,255,.4);color:white}
+.page{display:none;flex:1;overflow:hidden;flex-direction:column;position:relative;z-index:1}
+.page.active{display:flex}
+#chat{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:14px;scroll-behavior:smooth}
+#chat::-webkit-scrollbar{width:3px}
+#chat::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.message{display:flex;gap:10px;animation:fadeIn .3s ease;max-width:85%}
+.message.user{align-self:flex-end;flex-direction:row-reverse}
+.message.bot{align-self:flex-start}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.avatar{width:30px;height:30px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+.message.bot .avatar{background:linear-gradient(135deg,var(--accent),var(--accent2));color:white}
+.message.user .avatar{background:var(--surface);border:1px solid var(--border);color:var(--muted)}
+.bubble{padding:10px 14px;border-radius:14px;font-size:14px;line-height:1.6;white-space:pre-wrap}
+.message.bot .bubble{background:#12122a;border:1px solid var(--border);border-top-left-radius:4px}
+.message.user .bubble{background:linear-gradient(135deg,rgba(124,106,255,.2),rgba(255,106,158,.1));border:1px solid rgba(124,106,255,.3);border-top-right-radius:4px}
+.bubble.learning{background:rgba(67,224,180,.08);border-color:rgba(67,224,180,.3)!important;color:var(--accent3)}
+.chat-footer{padding:12px 20px;border-top:1px solid var(--border);background:rgba(10,10,15,.9);flex-shrink:0}
+.input-row{display:flex;gap:8px;align-items:flex-end;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:7px 7px 7px 14px;transition:border-color .2s}
+.input-row:focus-within{border-color:rgba(124,106,255,.5)}
+#input{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;resize:none;max-height:100px;min-height:22px;line-height:1.5;padding:3px 0}
+#input::placeholder{color:var(--muted)}
+.send-btn{width:34px;height:34px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .15s}
+.send-btn:hover{transform:scale(1.05)}.send-btn:active{transform:scale(.95)}
+.send-btn svg{width:15px;height:15px;fill:white}
+.welcome{text-align:center;padding:30px 20px;animation:fadeIn .5s ease}
+.welcome h2{font-family:'Syne',sans-serif;font-weight:800;font-size:24px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px}
+.welcome p{color:var(--muted);font-size:13px;margin-bottom:20px}
+.suggestions{display:flex;flex-wrap:wrap;gap:7px;justify-content:center}
+.suggestion{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:7px 14px;font-size:12px;color:var(--text);cursor:pointer;transition:all .2s}
+.suggestion:hover{border-color:rgba(124,106,255,.5);background:rgba(124,106,255,.1)}
+.game-page{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;align-items:center;gap:16px}
+.game-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px;width:100%;max-width:500px;animation:fadeIn .3s ease}
+.game-title{font-family:'Syne',sans-serif;font-weight:800;font-size:18px;margin-bottom:6px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.game-desc{color:var(--muted);font-size:13px;margin-bottom:18px}
+.score-bar{display:flex;align-items:center;justify-content:space-between;background:rgba(124,106,255,.08);border:1px solid rgba(124,106,255,.2);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px}
+.score-num{font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:var(--accent)}
+.action-btn{width:100%;padding:12px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:white;font-family:'DM Sans',sans-serif;transition:transform .15s}
+.action-btn:hover{transform:scale(1.02)}.action-btn:active{transform:scale(.98)}
+.result-msg{text-align:center;padding:12px;border-radius:12px;font-size:14px;margin-bottom:12px}
+.result-msg.correct{background:rgba(74,222,128,.1);color:#4ade80;border:1px solid rgba(74,222,128,.3)}
+.result-msg.wrong{background:rgba(248,113,113,.1);color:#f87171;border:1px solid rgba(248,113,113,.3)}
+.opt-btn{padding:12px;border-radius:12px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--bg);color:var(--text);transition:all .2s;text-align:center}
+.opt-btn:hover:not(:disabled){border-color:rgba(124,106,255,.5);background:rgba(124,106,255,.1)}
+.opt-btn.correct{border-color:#4ade80;background:rgba(74,222,128,.15);color:#4ade80}
+.opt-btn.wrong{border-color:#f87171;background:rgba(248,113,113,.15);color:#f87171}
+.opt-btn:disabled{cursor:not-allowed}
+.options-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.word-display{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:16px}
+.letter-box{width:40px;height:48px;border-radius:10px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:20px;transition:all .3s}
+.letter-box.revealed{border-color:var(--accent3);color:var(--accent3);background:rgba(67,224,180,.1)}
+.letter-box.wrong-letter{border-color:#f87171;color:#f87171;background:rgba(248,113,113,.1)}
+.alpha-grid{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:14px}
+.alpha-btn{width:36px;height:36px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+.alpha-btn:hover:not(:disabled){border-color:rgba(124,106,255,.5);background:rgba(124,106,255,.1)}
+.alpha-btn:disabled{opacity:.3;cursor:not-allowed}
+.alpha-btn.hit{border-color:var(--accent3);background:rgba(67,224,180,.15);color:var(--accent3)}
+.alpha-btn.miss{border-color:#f87171;background:rgba(248,113,113,.1);color:#f87171}
+.math-display{font-family:'Syne',sans-serif;font-weight:800;font-size:36px;text-align:center;margin-bottom:16px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.math-input-row{display:flex;gap:8px}
+.math-input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:18px;font-family:'Syne',sans-serif;font-weight:700;outline:none;text-align:center;transition:border-color .2s}
+.math-input:focus{border-color:rgba(124,106,255,.5)}
+.home-page{flex:1;overflow-y:auto;padding:20px}
+.home-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:500px;margin:0 auto}
+.home-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:20px;cursor:pointer;transition:all .2s;text-align:center}
+.home-card:hover{border-color:rgba(124,106,255,.4);transform:translateY(-2px)}
+.home-card-icon{font-size:32px;margin-bottom:10px}
+.home-card-title{font-family:'Syne',sans-serif;font-weight:800;font-size:14px;margin-bottom:4px}
+.home-card-desc{color:var(--muted);font-size:12px}
+.home-header{text-align:center;margin-bottom:20px}
+.home-header h2{font-family:'Syne',sans-serif;font-weight:800;font-size:22px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
+.home-header p{color:var(--muted);font-size:13px}
+.memory-page{flex:1;overflow-y:auto;padding:20px}
+.memory-header{text-align:center;margin-bottom:16px}
+.memory-header h2{font-family:'Syne',sans-serif;font-weight:800;font-size:18px;background:linear-gradient(135deg,var(--accent3),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.memory-header p{color:var(--muted);font-size:12px;margin-top:4px}
+.memory-item{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;font-size:13px}
+.memory-item .q{color:var(--muted);font-size:12px;margin-bottom:3px}
+.memory-item .a{color:var(--accent3);font-weight:500}
+.memory-item button{background:rgba(248,113,113,.15);border:1px solid rgba(248,113,113,.3);color:#f87171;border-radius:8px;padding:4px 10px;cursor:pointer;font-size:11px}
+.memory-empty{text-align:center;color:var(--muted);padding:40px 20px;font-size:13px}
+.learn-badge{display:inline-block;background:rgba(67,224,180,.15);color:var(--accent3);border:1px solid rgba(67,224,180,.3);border-radius:8px;padding:2px 8px;font-size:11px;margin-left:6px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">N</div>
+  <div class="header-info">
+    <h1>Ninja AI</h1>
+    <div class="status"><div class="status-dot"></div> <span>Cevrimici</span></div>
+  </div>
+  <div class="creator-badge">Yapimci: <span>Huseyin Tahir TOPAL</span><br>Inci Egitim Kurumlari - 7. Sinif</div>
+</header>
+<nav>
+  <button class="tab active" onclick="showPage('home')" data-page="home">🏠 Ana Sayfa</button>
+  <button class="tab" onclick="showPage('chat')" data-page="chat">💬 Sohbet</button>
+  <button class="tab" onclick="showPage('word')" data-page="word">🔤 Kelime</button>
+  <button class="tab" onclick="showPage('math')" data-page="math">🔢 Matematik</button>
+  <button class="tab" onclick="showPage('quiz')" data-page="quiz">🧠 Quiz</button>
+  <button class="tab" onclick="showPage('memory')" data-page="memory">📚 Hafiza</button>
+</nav>
+<div class="page active" id="page-home">
+  <div class="home-page">
+    <div class="home-header"><h2>Merhaba! 👋</h2><p>Ne yapmak istersin?</p></div>
+    <div class="home-grid">
+      <div class="home-card" onclick="showPage('chat')"><div class="home-card-icon">💬</div><div class="home-card-title">Sohbet</div><div class="home-card-desc">Konuş ve öğret!</div></div>
+      <div class="home-card" onclick="showPage('word')"><div class="home-card-icon">🔤</div><div class="home-card-title">Kelime Oyunu</div><div class="home-card-desc">Kelimeyi tahmin et</div></div>
+      <div class="home-card" onclick="showPage('math')"><div class="home-card-icon">🔢</div><div class="home-card-title">Matematik</div><div class="home-card-desc">Hızlı hesap yap</div></div>
+      <div class="home-card" onclick="showPage('quiz')"><div class="home-card-icon">🧠</div><div class="home-card-title">Bilgi Yarışması</div><div class="home-card-desc">Genel kültür testi</div></div>
+      <div class="home-card" onclick="showPage('memory')" style="grid-column:1/-1"><div class="home-card-icon">📚</div><div class="home-card-title">Hafıza <span class="learn-badge">YENİ</span></div><div class="home-card-desc">Botun öğrendiklerini gör</div></div>
+    </div>
+  </div>
+</div>
+<div class="page" id="page-chat">
+  <div id="chat">
+    <div class="welcome" id="welcome">
+      <h2>Merhaba! 👋</h2>
+      <p>Soru sor, öğret, seninle büyüyeyim! 🌱</p>
+      <div class="suggestions">
+        <div class="suggestion" onclick="sendSuggestion(this)">Sen kimsin?</div>
+        <div class="suggestion" onclick="sendSuggestion(this)">Kaç il var Türkiyede?</div>
+        <div class="suggestion" onclick="sendSuggestion(this)">En büyük gezegen?</div>
+        <div class="suggestion" onclick="sendSuggestion(this)">Bana şaka anlat</div>
+        <div class="suggestion" onclick="sendSuggestion(this)">Atatürk kimdir?</div>
+        <div class="suggestion" onclick="sendSuggestion(this)">Fotosentez nedir?</div>
+      </div>
+    </div>
+  </div>
+  <div class="chat-footer">
+    <div class="input-row">
+      <textarea id="input" placeholder="Yaz veya bir şey öğret..." rows="1"></textarea>
+      <button class="send-btn" onclick="sendMessage()"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
+    </div>
+  </div>
+</div>
+<div class="page" id="page-word">
+  <div class="game-page">
+    <div class="game-card" style="max-width:480px">
+      <div class="game-title">🔤 Kelime Tahmin Oyunu</div>
+      <div class="game-desc">Kelimeyi harfleri seçerek bul. 6 yanlış hakkın var!</div>
+      <div class="score-bar">
+        <div><span style="color:var(--muted);font-size:12px">PUAN</span><br><span class="score-num" id="word-score">0</span></div>
+        <div style="text-align:right"><span style="color:var(--muted);font-size:12px">CANLAR</span><br><div id="lives" style="display:flex;gap:4px;justify-content:flex-end;font-size:16px"></div></div>
+      </div>
+      <div style="text-align:center;color:var(--muted);font-size:13px;margin-bottom:10px" id="word-hint"></div>
+      <div class="word-display" id="word-display"></div>
+      <div class="alpha-grid" id="alpha-grid"></div>
+      <div class="result-msg" id="word-result" style="display:none"></div>
+      <button class="action-btn" id="word-new-btn" onclick="startWordGame()" style="display:none">Yeni Kelime →</button>
+    </div>
+  </div>
+</div>
+<div class="page" id="page-math">
+  <div class="game-page">
+    <div class="game-card">
+      <div class="game-title">🔢 Matematik Yarışması</div>
+      <div class="game-desc">Soruyu hızlıca cevapla!</div>
+      <div class="score-bar">
+        <div><span style="color:var(--muted);font-size:12px">PUAN</span><br><span class="score-num" id="math-score">0</span></div>
+        <div style="text-align:center"><span style="color:var(--muted);font-size:12px">SÜRE</span><br><span class="score-num" id="math-timer" style="color:var(--accent2)">30</span></div>
+        <div style="text-align:right"><span style="color:var(--muted);font-size:12px">SORU</span><br><span class="score-num" id="math-qnum" style="color:var(--accent3)">0/10</span></div>
+      </div>
+      <div class="math-display" id="math-question">Hazır mısın? 🎯</div>
+      <div class="result-msg" id="math-result" style="display:none"></div>
+      <div class="math-input-row" id="math-input-area" style="display:none">
+        <input class="math-input" id="math-input" type="number" placeholder="Cevabın?" onkeydown="if(event.key==='Enter')checkMath()">
+        <button class="action-btn" style="width:auto;padding:10px 20px" onclick="checkMath()">✓</button>
+      </div>
+      <button class="action-btn" id="math-start-btn" onclick="startMath()" style="margin-top:10px">🚀 Başla!</button>
+    </div>
+  </div>
+</div>
+<div class="page" id="page-quiz">
+  <div class="game-page">
+    <div class="game-card">
+      <div class="game-title">🧠 Bilgi Yarışması</div>
+      <div class="game-desc">Doğru cevabı seç, puan kazan!</div>
+      <div class="score-bar">
+        <div><span style="color:var(--muted);font-size:12px">PUAN</span><br><span class="score-num" id="quiz-score">0</span></div>
+        <div style="text-align:right"><span style="color:var(--muted);font-size:12px">SORU</span><br><span class="score-num" id="quiz-qnum" style="color:var(--accent3)">0/0</span></div>
+      </div>
+      <div id="quiz-question" style="background:rgba(124,106,255,.08);border:1px solid rgba(124,106,255,.2);border-radius:14px;padding:16px;font-size:15px;font-weight:500;text-align:center;margin-bottom:16px;line-height:1.5">Başlamak için butona bas!</div>
+      <div class="options-grid" id="quiz-options"></div>
+      <div class="result-msg" id="quiz-result" style="display:none"></div>
+      <button class="action-btn" id="quiz-btn" onclick="startQuiz()">🚀 Başla!</button>
+    </div>
+  </div>
+</div>
+<div class="page" id="page-memory">
+  <div class="memory-page">
+    <div class="memory-header"><h2>📚 Botun Hafızası</h2><p>Senin öğrettiklerini burada görüyorsun.</p></div>
+    <div id="memory-list"></div>
+    <div class="memory-empty" id="memory-empty">Henüz hiçbir şey öğrenilmedi. Sohbet sekmesinde bota bir şeyler öğret! 🌱</div>
+  </div>
+</div>
+<script>
+
+function showPage(id){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  document.getElementById("page-"+id).classList.add("active");
+  var tab=document.querySelector(".tab[data-page=\""+id+"\"]");
+  if(tab)tab.classList.add("active");
+  if(id==="word"&&!wordStarted)startWordGame();
+  if(id==="memory")renderMemory();
+}
+
+var knowledge = {
+  "kim": ["Ben Ninja AI! Inci Egitim Kurumlari 7. sinif ogrencisi Huseyin Tahir TOPAL tarafindan yapildim. 🤖"],
+  "kimsin": ["Ben Ninja AI! Beni Huseyin Tahir TOPAL yapti. 🤖"],
+  "yapimci": ["Beni Inci Egitim Kurumlari 7. sinif ogrencisi Huseyin Tahir TOPAL yapti! 🎉"],
+  "adin": ["Adim Ninja AI! Huseyin Tahir TOPAL tarafindan yapildim."],
+  "neler yapabilirsin": ["Seninle sohbet edebilirim, sorularini cevaplayabilirim, kelime oyunu, matematik yarismasi ve bilgi yarismasi oynayabilirim! 🎮"],
+  "merhaba": ["Merhaba! Nasilsin? 😊", "Selam! Sana nasil yardimci olabilirim?", "Hey! Hos geldin! 👋"],
+  "selam": ["Selam! 😊", "Merhaba! Nasilsin?"],
+  "gunaydin": ["Gunaydin! Guzel bir gun olsun 🌞"],
+  "iyi gunler": ["Iyi gunler! 😊"],
+  "nasilsin": ["Iyiyim tesekkurler! Sen nasilsin? 😊", "Harika hissediyorum! 💪"],
+  "tesekkur": ["Rica ederim! 😊", "Ne demek! 🙏"],
+  "iyi": ["Sevindim! 🌟"],
+  "kac il": ["Turkiyede 81 il vardir! En buyuk il Konya, en kalabalik il Istanbuldur. 🇹🇷"],
+  "kac tane il": ["Turkiyede 81 il vardir. 🇹🇷"],
+  "kac ilce": ["Turkiyede toplam 922 ilce bulunmaktadir."],
+  "nufus": ["Turkiyenin nufusu yaklasik 85 milyondur. En kalabalik sehir Istanbuldur. 👥"],
+  "komsu": ["Turkiyenin 8 komsuu vardir: Yunanistan, Bulgaristan, Gurcistan, Ermenistan, Azerbaycan, Iran, Irak ve Suriye. 🗺️"],
+  "bolge": ["Turkiye 7 cografi bolgeye ayrilir: Marmara, Ege, Akdeniz, Ic Anadolu, Karadeniz, Dogu Anadolu ve Guneydogu Anadolu. 🗺️"],
+  "baskent": ["Turkiyenin baskenti Ankaradir. 1923 yilinda baskent ilan edilmistir. 🇹🇷"],
+  "ankara": ["Ankara, Turkiyenin basketidir. Orta Anadoluda yer alir. 🏛️"],
+  "istanbul": ["Istanbul, Turkiyenin en kalabalik sehridir. Iki kitaya yayilan tek sehirdir! 🌉"],
+  "turkiye": ["Turkiye, Asya ve Avrupayi birbrine baglayan kopru konumunda bir ulkedir. Baskenti Ankara, 81 ili vardir. 🇹🇷"],
+  "ataturk": ["Mustafa Kemal Ataturk, Turkiye Cumhuriyetinin kurucusudur. 1923te cumhuriyeti ilan etti. 🎖️"],
+  "cumhuriyet": ["Turkiye Cumhuriyeti 29 Ekim 1923te Ataturk onlederliginde ilan edilmistir. 🎉"],
+  "osmanli": ["Osmanli Imparatorlugu yaklasik 600 yil (1299-1922) huküm surmus buyuk bir imparatorluktur. 🏰"],
+  "bogaz": ["Istanbul Bogazi, Karadeniz ile Marmarayi birbirine baglar. 🌊"],
+  "kapadokya": ["Kapadokya, Nevsehirde bulunan peri bacalari ile unlu eşsiz bir bolgedir. UNESCO listesindedir. 🏔️"],
+  "efes": ["Efes, antik bir Yunan sehridir. Artemis Tapinagi ile unludur. 🏛️"],
+  "pamukkale": ["Pamukkale, Denizhide bulunan beyaz travertenler ve termal sulariyla unlu dogal bir harikadir. 🤍"],
+  "konya": ["Konya, Turkiyenin en buyuk yuzolcumune sahip ilidir. Mevlana Muzesi ile unludur. 🕌"],
+  "izmir": ["Izmir, Turkiyenin ucuncu buyuk sehridir. Ege kiyisindadir. 🍇"],
+  "bursa": ["Bursa, Osmanlinin ilk basketidir. Ipek bocekciligii ile unludur. 🌰"],
+  "antalya": ["Antalya, Turkiyenin en cok turist ceken sehirlerinden biridir. Akdeniz kiyisindadir. 🌊"],
+  "agri dagi": ["Agri Dagi, Turkiyenin en yuksek dagidir. 5137 metre yuksekliktedir. ⛰️"],
+  "van golu": ["Van Golu, Turkiyenin en buyuk goludur. Dogu Anadoluda bulunur. 🏞️"],
+  "dunya": ["Dunya, Gunes Sisteminin ucuncu gezegenidir. 🌍"],
+  "kita": ["Dunyada 7 kita vardir: Asya, Afrika, Kuzey Amerika, Guney Amerika, Avrupa, Okyanusya ve Antarktika. 🌐"],
+  "okyanus": ["Dunyada 5 okyanus vardir: Pasifik, Atlantik, Hint, Arktik ve Guney Okyanusu. 🌊"],
+  "nil": ["Nil Nehri, Afrikanin en uzun nehridir. 🌊"],
+  "everest": ["Everest Dagi, dunyanin en yuksek dagidir. 8849 metre yuksekliktedir. ⛰️"],
+  "amazon": ["Amazon Ormani, dunyanin en buyuk yagmur ormanıdir. Brezilyadadir. 🌿"],
+  "sahara": ["Sahra Colu, dunyanin en buyuk sicak coludur. 🌵"],
+  "gezegen": ["Gunes Sisteminde 8 gezegen vardir: Merkur, Venus, Dunya, Mars, Jupiter, Saturn, Uranus, Neptun. 🪐"],
+  "gunes": ["Gunes, sistemimizin merkezindeki yildizdir. Dunyaya uzakligi 150 milyon kmdir. ☀️"],
+  "ay uydu": ["Ay, Dunyanin tek dogal uydusudur. Uzakligi yaklasik 384.000 kmdir. 🌕"],
+  "jupiter": ["Jupiter, Gunes Sisteminin en buyuk gezegenidir. 🪐"],
+  "saturn": ["Saturn, halkalariyla tanınan dev bir gezegendir. 🪐"],
+  "mars": ["Mars, Kizil Gezegen olarak bilinir. Uzerinde su izi bulunmustur. 🔴"],
+  "kara delik": ["Kara delik, cekim kuvveti cok guclu olan uzay cismidir, isik bile cikamaz. 🌑"],
+  "big bang": ["Big Bang teorisine gore evren yaklasik 13.8 milyar yil once buyuk bir patlamayla olustu. 💥"],
+  "neil armstrong": ["Neil Armstrong, 21 Temmuz 1969da Aya ayak basan ilk insandir. 🌕"],
+  "atom": ["Atom, maddenin temel yapi tasidir. Proton, notron ve elektronlardan olusur. ⚛️"],
+  "dna": ["DNA, canlilarin genetik bilgisini tasiyan molekuldur. Cift sarmal yapisindadir. 🧬"],
+  "fotosentez": ["Fotosentez, bitkilerin gunes isigini kullanarak besin ve oksijen urettigi olaydır. 🌿"],
+  "yercekimi": ["Yercekimi, cisimleri birbirine ceken kuvvettir. Newton elmain dusmesiyle kesffetti. 🍎"],
+  "einstein": ["Albert Einstein, gorelilik teorisini gelistiren buyuk fizikcdir. E=mc2 formuluyle unludur. 🧑‍🔬"],
+  "newton": ["Isaac Newton, yercekimi yasasini kesseden unlu bilim insanidir. 🍎"],
+  "hucre": ["Hucre, tum canlilarin temel yapi birimidir. 🔬"],
+  "evrim": ["Evrim teorisi, canlilarin dogal seleksiyon yoluyla degistigini aciklar. Darwin tarafindan ortaya atilmistir."],
+  "roma": ["Roma Imparatorlugu, MO 27 ile MS 476 yillari arasinda hukum surmus buyuk bir medeniyettir. 🏛️"],
+  "misir": ["Antik Misir medeniyeti, piramitler ve firavunlariyla unlu, Nil Nehri kiyisinda kurulmustur. 🏺"],
+  "piramit": ["Piramitler, Antik Misirda firavunlar icin insaa edilen mezarlardir. 🔺"],
+  "fransiz devrimi": ["Fransiz Devrimi 1789da gerceklesti. Ozgurluk, esitlik, kardeslik ilkeleri bu devrimle yayildi. 🇫🇷"],
+  "sanayi devrimi": ["Sanayi Devrimi 18. yuzyilda Ingilterede basladi ve uretimi donusturdu. 🏭"],
+  "napolyon": ["Napoleon Bonaparte, Fransiz Imparatoru ve komutandir. Europay fethetti. 👑"],
+  "kolomb": ["Kristof Kolomb 1492de Amerika kitasini kesfetti. ⛵"],
+  "fatih": ["Fatih Sultan Mehmet, 1453te Istanbulu fetheden Osmanli padisahidir. 🏰"],
+  "aslan": ["Aslan, Afrikanin savana bolgelerinde yasayan ve ormanların krali olarak bilinen buyuk kedi. 🦁"],
+  "fil": ["Fil, dunyanin en buyuk kara hayvanidir. Zeka ve hafizalariyla bilinirler. 🐘"],
+  "yunus": ["Yunuslar, cok zeki deniz memelileridir. 🐬"],
+  "kartal": ["Kartal, en guclu yirtici kusllardan biridir. 🦅"],
+  "penguen": ["Penguenler ucamayan kuslardir ve Antarktikaada yasarlar. 🐧"],
+  "zurafa": ["Zurafa, dunyanin en uzun boylu hayvanidir. 🦒"],
+  "kopek baligi": ["Kopek baligi, okyanuslarin en guclu yirticilarindan biridir. 🦈"],
+  "mozart": ["Wolfgang Amadeus Mozart, Avusturyali besteci ve muzik dahisidir. 🎵"],
+  "picasso": ["Pablo Picasso, Kubizm akiminin oncusu Ispanyol ressam ve heykeltarastir. 🎨"],
+  "mona lisa": ["Mona Lisa, Leonardo da Vincinin eseri olan dunyaca unlu bir tablodur. Paris Louvre Muzesindedir. 🖼️"],
+  "shakespeare": ["William Shakespeare, Ingiliz sair ve oyun yazaridir. Romeo ve Juliet, Hamlet eserleriyle unludur. ✍️"],
+  "van gogh": ["Vincent van Gogh, Yildizli Gece tablosuyla unlu Hollandali resssamdir. 🎨"],
+  "beethoven": ["Ludwig van Beethoven, sagir olmasina ragmen buyuk senfoniler besteledi. 🎵"],
+  "yunus emre": ["Yunus Emre, 13-14. yuzyillarda yasamis Turk halk sairi ve mutasavvifidir. ❤️"],
+  "mevlana": ["Mevlana Celaleddin Rumi, Konyada yasamis buyuk Islam mutasavviifidir. 🌹"],
+  "sokrates": ["Sokrates, antik Yunan filozofudur. Kendini bil sozuyle unludur. 🏛️"],
+  "platon": ["Platon, Sokratesin ogrencisidir. Ideal devlet anlayisiyla unludur. 📚"],
+  "aristo": ["Aristoteles, Platonun ogrencisidir. Mantik, biyoloji, fizik gibi pek cok alanda eser vermistir. 🧪"],
+  "futbol": ["Futbol, dunyada en cok oynanan spordur. 🏆⚽"],
+  "basketbol": ["Basketbol, 1891de James Naismith tarafindan icat edildi. 🏀"],
+  "olimpiyat": ["Olimpiyat Oyunlari, her 4 yilda bir duzenlenen uluslararasi spor yarisimasidir. 🏅"],
+  "internet": ["Internet, bilgisayarlari birbirine baglayan kuresel bir agdir. 💻"],
+  "yapay zeka": ["Yapay zeka, bilgisayarlarin insan gibi dusunmesini saglayan teknolojidir. Ben de bir yapay zekayim! 🤖"],
+  "programlama": ["Programlama, bilgisayara ne yapacagini ogretme sanatidir. Python, Java, C++ populer dillerdir. 👨‍💻"],
+  "pi sayisi": ["Pi sayisi yaklasik 3.14159dur. Cemberin cevresi ile capi arasindaki orandir. π"],
+  "pisagor": ["Pisagor teoremi: Dik ucgende hipotenusun karesi diger iki kenarin kareler toplamina esittir. a2+b2=c2 📐"],
+  "fibonacci": ["Fibonacci dizisi: 0, 1, 1, 2, 3, 5, 8, 13... Her sayi kendinden onceki iki sayinin toplamdir. 🐚"],
+  "kalp": ["Kalp, kani vucuda pompalayan kasli organdir. Dakikada ortalama 70 kez atar. ❤️"],
+  "beyin": ["Insan beyni yaklasik 86 milyar noron icerir. Vucudun kontrol merkezidir. 🧠"],
+  "kemik": ["Insan vucudunda 206 kemik bulunur. En uzun kemik uyluk kemigi, en kucuk kemik kulaktaki ozengedir. 🦴"],
+  "vitamin": ["Vitaminler vucut icin gerekli organik billesiklerdir. A, B, C, D, E, K vitaminleri onemlidir. 🍊"],
+  "enflasyon": ["Enflasyon, genel fiyat duzeyinin zaman icinde artmasidir. 📈"],
+  "iklim degisikligi": ["Iklim degisikligi, sera gazlarinin artmasiyla Dunyanin isinmasidir. 🌡️"],
+  "deprem": ["Deprem, yer kabugunddaki kirilmalar sonucu olusan sarsıntidir. Turkiye deprem kusagindadir. 🏔️"],
+  "volkan": ["Volkan, magmanin yerkabuğunu delip yuzeye ciktigi yerdir. 🌋"],
+  "saka": [
+    "Ogretmen: 1+1 kac eder? Ogrenci: 2! Ogretmen: Aferin! Ogrenci: Sans eseri mi? 😄",
+    "Neden matematik kitabi uzgun? Cunku cok fazla problemi var! 😂",
+    "Neden astronotlar iyi arkadas olur? Cunku aralarinda mesafe yoktur! 🚀😄",
+    "Biyoloji ogretmeni: Hucreler neden bolunur? Ogrenci: Paylasmayi seviyorlar! 😆"
+  ],
+  "oyun": ["Menuден oyunlara gidebilirsin! Kelime oyunu, matematik yarismasi ve bilgi yarismasi var. 🎮"],
+  "kelime oyun": ["Kelime oyunu sekmesine giderek oynayabilirsin! 🔤"],
+  "quiz": ["Bilgi yarismasi sekmesinde genel kultur sorulari seni bekliyor! 🧠"]
+};
+
+var learnedKnowledge = {};
+var waitingToLearn = null;
+
+function normalizeText(text){
+  return text.toLowerCase()
+    .replace(/ğ/g,"g").replace(/Ğ/g,"g")
+    .replace(/ü/g,"u").replace(/Ü/g,"u")
+    .replace(/ş/g,"s").replace(/Ş/g,"s")
+    .replace(/ı/g,"i").replace(/İ/g,"i")
+    .replace(/ö/g,"o").replace(/Ö/g,"o")
+    .replace(/ç/g,"c").replace(/Ç/g,"c")
+    .replace(/[?!.,;:]/g,"")
+    .replace(/\s+/g," ")
+    .trim();
+}
+
+function findAnswer(text){
+  var t = normalizeText(text);
+  for(var key in learnedKnowledge){
+    if(t.indexOf(normalizeText(key)) >= 0){
+      var arr = learnedKnowledge[key];
+      return arr[Math.floor(Math.random()*arr.length)];
+    }
+  }
+  for(var key in knowledge){
+    if(t.indexOf(normalizeText(key)) >= 0){
+      var arr = knowledge[key];
+      return arr[Math.floor(Math.random()*arr.length)];
+    }
+  }
+  return null;
+}
+
+var chatEl = document.getElementById("chat");
+var inputEl = document.getElementById("input");
+
+inputEl.addEventListener("keydown", function(e){
+  if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendMessage();}
+});
+inputEl.addEventListener("input", function(){
+  inputEl.style.height="auto";
+  inputEl.style.height=Math.min(inputEl.scrollHeight,100)+"px";
+});
+
+function sendSuggestion(el){inputEl.value=el.textContent;sendMessage();}
+
+function addMsg(role,text,special){
+  var w=document.getElementById("welcome");
+  if(w)w.remove();
+  var msg=document.createElement("div");
+  msg.className="message "+role;
+  var av=document.createElement("div");
+  av.className="avatar";
+  av.textContent=role==="bot"?"N":"👤";
+  var b=document.createElement("div");
+  b.className="bubble";
+  if(special)b.classList.add(special);
+  b.textContent=text;
+  msg.appendChild(av);
+  msg.appendChild(b);
+  chatEl.appendChild(msg);
+  chatEl.scrollTop=chatEl.scrollHeight;
+}
+
+function sendMessage(){
+  var text=inputEl.value.trim();
+  if(!text)return;
+  inputEl.value="";
+  inputEl.style.height="auto";
+  addMsg("user",text);
+  setTimeout(function(){
+    if(waitingToLearn){
+      var t=text.toLowerCase();
+      if(t.indexOf("bilmiyorum")>=0||t.indexOf("bilmiyor")>=0){
+        waitingToLearn=null;
+        addMsg("bot","Tamam! Baska bir sey sorarsan sevinirim! 😊");
+        return;
+      }
+      var key=waitingToLearn;
+      if(!learnedKnowledge[key])learnedKnowledge[key]=[];
+      learnedKnowledge[key].push(text);
+      waitingToLearn=null;
+      addMsg("bot","Tesekkurler! \""+key+"\" hakkinda ogrendim: \""+text+"\" 🌱\nArtik bu soruyu cevapLayabilirim!","learning");
+      return;
+    }
+    var answer=findAnswer(text);
+    if(answer){
+      addMsg("bot",answer);
+    } else {
+      var words=normalizeText(text).split(" ").filter(function(w){return w.length>=2;});
+      var key=words.length>0?words[0]:normalizeText(text).substring(0,20);
+      waitingToLearn=key;
+      addMsg("bot","Hmm, bu konuda bilgim yok. 🤔\n\nBana ogretir misin? Cevabini yazarsan hatirlayacagim! 📚\n\n(Bilmiyorsan \"bilmiyorum\" yazabilirsin)","learning");
+    }
+  },300+Math.random()*300);
+}
+
+function renderMemory(){
+  var list=document.getElementById("memory-list");
+  var empty=document.getElementById("memory-empty");
+  list.innerHTML="";
+  var keys=Object.keys(learnedKnowledge);
+  if(keys.length===0){empty.style.display="block";return;}
+  empty.style.display="none";
+  keys.forEach(function(key){
+    learnedKnowledge[key].forEach(function(val,i){
+      var item=document.createElement("div");
+      item.className="memory-item";
+      var info=document.createElement("div");
+      info.innerHTML="<div class=\"q\">Konu: \""+key+"\"</div><div class=\"a\">"+val+"</div>";
+      var btn=document.createElement("button");
+      btn.textContent="Sil";
+      btn.dataset.key=key;
+      btn.dataset.idx=i;
+      btn.addEventListener("click",function(){
+        forgetMemory(this.dataset.key,parseInt(this.dataset.idx));
+      });
+      item.appendChild(info);
+      item.appendChild(btn);
+      list.appendChild(item);
+    });
+  });
+}
+
+function forgetMemory(key,idx){
+  if(learnedKnowledge[key]){
+    learnedKnowledge[key].splice(idx,1);
+    if(learnedKnowledge[key].length===0)delete learnedKnowledge[key];
+    renderMemory();
+  }
+}
+
+var wordList=[
+  {word:"ELMA",hint:"Bir meyve 🍎"},{word:"KEDI",hint:"Evcil hayvan 🐱"},
+  {word:"OKUL",hint:"Egitim yeri 🏫"},{word:"DENIZ",hint:"Buyuk su kutlesi 🌊"},
+  {word:"GUNES",hint:"Gokyuzundeki yildiz ☀️"},{word:"KITAP",hint:"Okunacak sey 📚"},
+  {word:"ARABA",hint:"Tasit araci 🚗"},{word:"MUZIK",hint:"Notalardan olusur 🎵"},
+  {word:"BALIK",hint:"Suda yasar 🐟"},{word:"CICEK",hint:"Bahcede yetisir 🌸"},
+  {word:"BULUT",hint:"Gokyuzunde ☁️"},{word:"ROBOT",hint:"Teknoloji 🤖"},
+  {word:"MASA",hint:"Mobilya 🪑"},{word:"KALEM",hint:"Yazma aleti ✏️"},
+  {word:"TREN",hint:"Rayda gider 🚆"},{word:"ASLAN",hint:"Orman krali 🦁"},
+  {word:"BALON",hint:"Ucan renkli sey 🎈"},{word:"FUTBOL",hint:"Spor ⚽"},
+  {word:"GEZEGEN",hint:"Uzayda doner 🪐"},{word:"PIRAMIT",hint:"Antik Misir yapisi 🔺"},
+  {word:"KARTAL",hint:"Yirtici kus 🦅"},{word:"YILDIZ",hint:"Gece gokyuzunde ⭐"},
+  {word:"HASTANE",hint:"Tedavi yeri 🏥"},{word:"TELEFON",hint:"Iletisim cihazi 📱"},
+  {word:"BILGISAYAR",hint:"Teknoloji aleti 💻"}
+];
+var ALPHABET="ABCDEFGHIJKLMNOPRSTUVYZ";
+var currentWord="",guessed=[],wrongLetters=[],wordStarted=false,wordScore=0;
+
+function startWordGame(){
+  var w=wordList[Math.floor(Math.random()*wordList.length)];
+  currentWord=w.word;guessed=[];wrongLetters=[];wordStarted=true;
+  document.getElementById("word-hint").textContent="Ipucu: "+w.hint;
+  document.getElementById("word-result").style.display="none";
+  document.getElementById("word-new-btn").style.display="none";
+  renderWord();renderLives();renderAlpha();
+}
+function renderWord(){
+  var d=document.getElementById("word-display");d.innerHTML="";
+  for(var i=0;i<currentWord.length;i++){
+    var ch=currentWord[i];
+    var b=document.createElement("div");b.className="letter-box";
+    if(guessed.indexOf(ch)>=0){b.textContent=ch;b.classList.add("revealed");}
+    else if(wrongLetters.length>=6){b.textContent=ch;b.classList.add("wrong-letter");}
+    d.appendChild(b);
+  }
+}
+function renderLives(){
+  var r=6-wrongLetters.length;
+  document.getElementById("lives").textContent="❤️".repeat(r)+"🖤".repeat(wrongLetters.length);
+}
+function renderAlpha(){
+  var g=document.getElementById("alpha-grid");g.innerHTML="";
+  ALPHABET.split("").forEach(function(ch){
+    var b=document.createElement("button");b.className="alpha-btn";b.textContent=ch;
+    if(guessed.indexOf(ch)>=0){b.classList.add("hit");b.disabled=true;}
+    else if(wrongLetters.indexOf(ch)>=0){b.classList.add("miss");b.disabled=true;}
+    b.addEventListener("click",function(){guessLetter(ch);});
+    g.appendChild(b);
+  });
+}
+function guessLetter(ch){
+  if(currentWord.indexOf(ch)>=0)guessed.push(ch);else wrongLetters.push(ch);
+  renderWord();renderLives();renderAlpha();checkWordEnd();
+}
+function checkWordEnd(){
+  var won=currentWord.split("").every(function(ch){return guessed.indexOf(ch)>=0;});
+  var lost=wrongLetters.length>=6;
+  if(won||lost){
+    var r=document.getElementById("word-result");r.style.display="block";
+    if(won){r.className="result-msg correct";r.textContent="Tebrikler! +10 puan! 🎉";wordScore+=10;document.getElementById("word-score").textContent=wordScore;}
+    else{r.className="result-msg wrong";r.textContent="Kalbin bitti! Kelime: "+currentWord+" 😢";}
+    document.querySelectorAll(".alpha-btn").forEach(function(b){b.disabled=true;});
+    document.getElementById("word-new-btn").style.display="block";
+  }
+}
+
+var mathScore=0,mathQ=0,mathAnswer=0,mathTimer=null,mathTimeLeft=30,mathActive=false;
+function startMath(){
+  mathScore=0;mathQ=0;mathActive=true;
+  document.getElementById("math-start-btn").style.display="none";
+  document.getElementById("math-result").style.display="none";
+  document.getElementById("math-score").textContent=0;
+  nextMath();
+}
+function nextMath(){
+  if(!mathActive)return;
+  if(mathQ>=10){endMath();return;}
+  mathQ++;
+  var ops=["+","-","*"];
+  var op=ops[Math.floor(Math.random()*ops.length)];
+  var a,b;
+  if(op==="*"){a=Math.floor(Math.random()*12)+1;b=Math.floor(Math.random()*12)+1;}
+  else{a=Math.floor(Math.random()*50)+1;b=Math.floor(Math.random()*50)+1;}
+  if(op==="-"&&b>a){var tmp=a;a=b;b=tmp;}
+  mathAnswer=op==="+"?a+b:op==="-"?a-b:a*b;
+  document.getElementById("math-question").textContent=a+" "+(op==="*"?"x":op)+" "+b+" = ?";
+  document.getElementById("math-qnum").textContent=mathQ+"/10";
+  document.getElementById("math-input").value="";
+  document.getElementById("math-result").style.display="none";
+  document.getElementById("math-input-area").style.display="flex";
+  document.getElementById("math-input").focus();
+  startMathTimer();
+}
+function startMathTimer(){
+  mathTimeLeft=30;clearInterval(mathTimer);
+  document.getElementById("math-timer").textContent=mathTimeLeft;
+  mathTimer=setInterval(function(){
+    mathTimeLeft--;
+    document.getElementById("math-timer").textContent=mathTimeLeft;
+    if(mathTimeLeft<=0){clearInterval(mathTimer);if(!mathActive)return;showMathResult(false,"Sure doldu! Cevap: "+mathAnswer);}
+  },1000);
+}
+function checkMath(){
+  if(!mathActive)return;
+  var val=parseInt(document.getElementById("math-input").value);
+  if(isNaN(val))return;
+  clearInterval(mathTimer);
+  if(val===mathAnswer){mathScore+=mathTimeLeft;showMathResult(true,"Dogru! +"+mathTimeLeft+" puan ✅");}
+  else{showMathResult(false,"Yanlis! Cevap: "+mathAnswer+" ❌");}
+}
+function showMathResult(correct,msg){
+  document.getElementById("math-score").textContent=mathScore;
+  var r=document.getElementById("math-result");
+  r.style.display="block";
+  r.className="result-msg "+(correct?"correct":"wrong");
+  r.textContent=msg;
+  document.getElementById("math-input-area").style.display="none";
+  setTimeout(function(){if(mathActive)nextMath();},1500);
+}
+function endMath(){
+  mathActive=false;clearInterval(mathTimer);
+  document.getElementById("math-question").textContent="Oyun bitti! 🎉 Toplam: "+mathScore+" puan";
+  document.getElementById("math-result").style.display="none";
+  document.getElementById("math-input-area").style.display="none";
+  var btn=document.getElementById("math-start-btn");
+  btn.style.display="block";btn.textContent="Tekrar Oyna 🔄";
+}
+
+var quizData=[
+  {s:"Turkiyenin baskenti neresidir?",o:["A) Istanbul","B) Ankara","C) Izmir","D) Bursa"],d:"B"},
+  {s:"Gunes sistemindeki en buyuk gezegen?",o:["A) Saturn","B) Mars","C) Jupiter","D) Uranus"],d:"C"},
+  {s:"Su kac derecede kaynar?",o:["A) 90 C","B) 80 C","C) 110 C","D) 100 C"],d:"D"},
+  {s:"Turk Cumhuriyeti hangi yil ilan edildi?",o:["A) 1920","B) 1923","C) 1919","D) 1925"],d:"B"},
+  {s:"Dunyanin en uzun nehri hangisidir?",o:["A) Amazon","B) Volga","C) Nil","D) Mississippi"],d:"C"},
+  {s:"Hangi gezegen Gunese en yakindir?",o:["A) Venus","B) Dunya","C) Mars","D) Merkur"],d:"D"},
+  {s:"Istanbul hangi iki kita arasindadir?",o:["A) Asya-Afrika","B) Avrupa-Asya","C) Avrupa-Afrika","D) Asya-Amerika"],d:"B"},
+  {s:"Fotosentez icin hangi gaz gereklidir?",o:["A) Oksijen","B) Azot","C) Karbondioksit","D) Hidrojen"],d:"C"},
+  {s:"Dunyanin en yuksek dagi hangisidir?",o:["A) K2","B) Elbrus","C) Aconcagua","D) Everest"],d:"D"},
+  {s:"Ataturk hangi sehirde dogmustur?",o:["A) Ankara","B) Istanbul","C) Selanik","D) Izmir"],d:"C"},
+  {s:"Hangi element sembolu Au dur?",o:["A) Gumus","B) Altin","C) Bakir","D) Demir"],d:"B"},
+  {s:"Bir haftada kac gun vardir?",o:["A) 5","B) 6","C) 7","D) 8"],d:"C"},
+  {s:"Gokkusaginda kac renk vardir?",o:["A) 5","B) 6","C) 8","D) 7"],d:"D"},
+  {s:"En hizli kara hayvani hangisidir?",o:["A) Aslan","B) At","C) Cita","D) Leopar"],d:"C"},
+  {s:"Turkiye kac kitada yer alir?",o:["A) 1","B) 2","C) 3","D) 4"],d:"B"},
+  {s:"Pi sayisi yaklasik kactir?",o:["A) 2.14","B) 3.14","C) 4.14","D) 1.14"],d:"B"},
+  {s:"Hangi ulke en fazla nufusa sahiptir?",o:["A) Hindistan","B) ABD","C) Cin","D) Rusya"],d:"A"},
+  {s:"Osmanli Imparatorlugu yaklasik kac yil surdu?",o:["A) 400 yil","B) 500 yil","C) 600 yil","D) 300 yil"],d:"C"},
+  {s:"Yercekimini kim kessetti?",o:["A) Einstein","B) Newton","C) Galileo","D) Darwin"],d:"B"},
+  {s:"Mona Lisa tablosu kimin eseridir?",o:["A) Picasso","B) Van Gogh","C) Leonardo da Vinci","D) Michelangelo"],d:"C"},
+  {s:"Eyfel Kulesi hangi sehirdedir?",o:["A) Londra","B) Berlin","C) Roma","D) Paris"],d:"D"},
+  {s:"Antarktika hangi kutuptadir?",o:["A) Kuzey","B) Guney","C) Her ikisi de","D) Hicbiri"],d:"B"},
+  {s:"Insan vucudunda kac kemik vardir?",o:["A) 186","B) 206","C) 256","D) 306"],d:"B"},
+  {s:"Hangi gaz atmosferde en cok bulunur?",o:["A) Oksijen","B) Karbondioksit","C) Azot","D) Helyum"],d:"C"},
+  {s:"DNA ne anlama gelir?",o:["A) Dinamik Nukleer Asit","B) Dezoksiribonukleik Asit","C) Dijital Notr Analiz","D) Doga Nort Asit"],d:"B"},
+  {s:"Fransiz Devrimi hangi yil oldu?",o:["A) 1776","B) 1815","C) 1789","D) 1804"],d:"C"},
+  {s:"Buyuk Iskenderin vatani neresidir?",o:["A) Roma","B) Yunanistan","C) Makedonya","D) Misir"],d:"C"},
+  {s:"Turkiyenin en uzun nehri hangisidir?",o:["A) Dicle","B) Firat","C) Sakarya","D) Kizilirmak"],d:"B"},
+  {s:"Dunya kac milyon yil once olusmustur?",o:["A) 4.5 milyar","B) 1 milyar","C) 10 milyar","D) 500 milyon"],d:"A"},
+  {s:"Gunes Sistemi kac gezegendan olusur?",o:["A) 7","B) 8","C) 9","D) 10"],d:"B"}
+];
+
+var quizList=[],quizIndex=0,quizScore=0;
+function startQuiz(){
+  quizList=[].concat(quizData).sort(function(){return Math.random()-.5;}).slice(0,10);
+  quizIndex=0;quizScore=0;
+  document.getElementById("quiz-score").textContent=0;
+  document.getElementById("quiz-btn").style.display="none";
+  showQuizQ();
+}
+function showQuizQ(){
+  if(quizIndex>=quizList.length){endQuiz();return;}
+  var q=quizList[quizIndex];
+  document.getElementById("quiz-question").textContent=(quizIndex+1)+". "+q.s;
+  document.getElementById("quiz-qnum").textContent=(quizIndex+1)+"/"+quizList.length;
+  document.getElementById("quiz-result").style.display="none";
+  var og=document.getElementById("quiz-options");og.innerHTML="";
+  q.o.forEach(function(opt){
+    var b=document.createElement("button");b.className="opt-btn";b.textContent=opt;
+    b.addEventListener("click",function(){checkQuiz(b,opt.charAt(0),q.d);});
+    og.appendChild(b);
+  });
+}
+function checkQuiz(btn,chosenLetter,correctLetter){
+  var isCorrect=chosenLetter===correctLetter;
+  document.querySelectorAll(".opt-btn").forEach(function(b){
+    b.disabled=true;
+    if(b.textContent.charAt(0)===correctLetter)b.classList.add("correct");
+    else if(b===btn&&!isCorrect)b.classList.add("wrong");
+  });
+  if(isCorrect)quizScore+=10;
+  document.getElementById("quiz-score").textContent=quizScore;
+  var r=document.getElementById("quiz-result");
+  r.style.display="block";
+  r.className="result-msg "+(isCorrect?"correct":"wrong");
+  r.textContent=isCorrect?"Dogru! ✅":"Yanlis! Dogru cevap: "+correctLetter+" ❌";
+  quizIndex++;
+  setTimeout(function(){if(quizIndex<quizList.length)showQuizQ();else endQuiz();},1500);
+}
+function endQuiz(){
+  document.getElementById("quiz-question").textContent="Bitti! 🎉 "+quizScore+"/"+(quizList.length*10)+" puan!";
+  document.getElementById("quiz-options").innerHTML="";
+  document.getElementById("quiz-result").style.display="none";
+  var btn=document.getElementById("quiz-btn");
+  btn.style.display="block";btn.textContent="Tekrar Oyna 🔄";
+}
+
+</script>
+</body>
+</html>
